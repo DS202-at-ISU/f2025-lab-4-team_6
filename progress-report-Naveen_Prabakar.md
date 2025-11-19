@@ -89,7 +89,7 @@ votes <- votes[-1, ]
 ```
 
 ``` r
-#Save the data frame
+#Save the data frame (the intial Data)
 write.csv(votes, "C:\\Users\\nvnpr\\Downloads\\voting.csv")
 ```
 
@@ -112,3 +112,82 @@ head(votes)
     ## #   `OPS+` <chr>, W <chr>, L <chr>, ERA <chr>, `ERA+` <chr>, WHIP <chr>,
     ## #   G <chr>, GS <chr>, SV <chr>, IP <chr>, H <chr>, HR <chr>, BB <chr>,
     ## #   SO <chr>, `Pos Summary` <chr>
+
+``` r
+# Preview of the Lahman Data
+head(HallOfFame)
+```
+
+    ##    playerID yearID votedBy ballots needed votes inducted category needed_note
+    ## 1 aaronha01   1982   BBWAA     415    312   406        Y   Player        <NA>
+    ## 2 abbotji01   2005   BBWAA     516    387    13        N   Player        <NA>
+    ## 3 abreubo01   2020   BBWAA     397    298    22        N   Player        <NA>
+    ## 4 abreubo01   2021   BBWAA     401    301    35        N   Player        <NA>
+    ## 5 abreubo01   2022   BBWAA     394    296    34        N   Player        <NA>
+    ## 6 abreubo01   2023   BBWAA     389    292    60        N   Player        <NA>
+
+``` r
+#Clean the data
+
+votes <- votes |> select(Rk, Name, YoB, Votes, `%vote`, HOFm, HOFs, Yrs, WAR, WAR7, JAWS)
+
+votes <- votes |> mutate(`%vote` = parse_number(`%vote`),across(c(Rk, YoB, Votes, HOFm, HOFs, Yrs, WAR, WAR7, JAWS), as.numeric),Name = str_trim(Name))
+```
+
+    ## Warning: There was 1 warning in `mutate()`.
+    ## ℹ In argument: `across(c(Rk, YoB, Votes, HOFm, HOFs, Yrs, WAR, WAR7, JAWS),
+    ##   as.numeric)`.
+    ## Caused by warning:
+    ## ! NAs introduced by coercion
+
+``` r
+# Join the dataset to get player ID:
+
+votes <- votes |>left_join(Lahman::People |>  mutate(fullName = paste(nameFirst, nameLast)) |> select(playerID, fullName),by = c("Name" = "fullName"))
+```
+
+``` r
+#  Add yearID
+votes <- votes |> mutate(yearID = 2025)
+
+# Add votedBy
+votes <- votes |> mutate(votedBy = "BBWAA")
+
+#  Calculate total ballots
+votes <- votes |> mutate(Votes = as.numeric(Votes))  
+votes <- votes |> mutate(votes = Votes)               
+votes <- votes |> mutate(ballots = max(votes, na.rm = TRUE))
+
+#  Calculate needed votes (75% of ballots)
+votes <- votes |> mutate(needed = round(0.75 * ballots))
+
+#  Determine inducted status
+votes <- votes |> mutate(inducted = if_else(`%vote` >= 75, "Y", "N"))
+
+#  Add category column
+votes <- votes |> mutate(category = "Player")
+
+
+#  Select only the final columns
+votes <- votes |>
+  select(playerID, yearID, votedBy, ballots, needed,
+         votes, inducted, category)
+
+
+votes
+```
+
+    ## # A tibble: 28 × 8
+    ##    playerID  yearID votedBy ballots needed votes inducted category
+    ##    <chr>      <dbl> <chr>     <dbl>  <dbl> <dbl> <chr>    <chr>   
+    ##  1 suzukic01   2025 BBWAA       393    295   393 Y        Player  
+    ##  2 sabatcc01   2025 BBWAA       393    295   342 Y        Player  
+    ##  3 wagnebi02   2025 BBWAA       393    295   325 Y        Player  
+    ##  4 <NA>        2025 BBWAA       393    295   277 N        Player  
+    ##  5 jonesan01   2025 BBWAA       393    295   261 N        Player  
+    ##  6 utleych01   2025 BBWAA       393    295   157 N        Player  
+    ##  7 rodrial01   2025 BBWAA       393    295   146 N        Player  
+    ##  8 ramirma02   2025 BBWAA       393    295   135 N        Player  
+    ##  9 pettian01   2025 BBWAA       393    295   110 N        Player  
+    ## 10 <NA>        2025 BBWAA       393    295    81 N        Player  
+    ## # ℹ 18 more rows
