@@ -51,7 +51,4 @@ write.csv(votes, "C:\\Users\\nvnpr\\Downloads\\voting.csv")
 head(votes)
 ```
 
-```{r}
-head(HallOfFame, 3)
-```
 
