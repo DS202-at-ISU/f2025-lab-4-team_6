@@ -11,7 +11,7 @@ head(HallOfFame, 3)
 
 
 
-## Get the data and do some simple cleaning
+## Get the data and do some cleaning
 ```{r}
 library(rvest)
 url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
@@ -26,4 +26,18 @@ data <- data[-1, ]
 head(data, 3)
 
 data$Votes <- as.numeric(data$Votes)
+
+str(data)
+
+data <- data[, -c(1)]
+
+str(data)
+
+show(data$Name)
+
+data$Name <- gsub("X-", "", data$Name)
+
+show(data$Name)
+
+readr::write_csv(data, file="hvoss_data.csv")
 ```
