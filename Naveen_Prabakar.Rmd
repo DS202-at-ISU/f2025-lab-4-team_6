@@ -1,0 +1,57 @@
+---
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rvest)
+library(Lahman)
+```
+
+# Lab report #4
+
+```{r}
+#Gather the HTML of the data being scrapped
+
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
+html <- read_html(url)
+html
+```
+
+
+```{r}
+#Gather all the tables from the HTML dataset
+
+tables <- html %>% html_table(fill=TRUE)
+tables
+```
+
+```{r}
+# Filter for only the voting table
+votes <- tables[[1]]
+head(votes)
+```
+
+```{r}
+# Build the data frame]
+actual_col_names <- votes[1, ]
+colnames(votes) <- actual_col_names
+votes <- votes[-1, ]
+```
+
+
+```{r}
+#Save the data frame
+write.csv(votes, "C:\\Users\\nvnpr\\Downloads\\voting.csv")
+```
+
+```{r}
+#Preview of the saved Data from the scrapped data
+head(votes)
+```
+
+```{r}
+head(HallOfFame, 3)
+```
+
