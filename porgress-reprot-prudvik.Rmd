@@ -1,0 +1,24 @@
+---
+title: "progress-report"
+author: "Prudvik seemakurthi"
+output: html_document
+date: "2025-11-19"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r}
+library(rvest)
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
+html <- read_html(url)
+tables <- html_table(html)
+tables
+```
+
+```{r}
+head(tables[[1]], 3)
+```
+
