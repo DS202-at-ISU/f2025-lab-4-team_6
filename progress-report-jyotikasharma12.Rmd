@@ -15,6 +15,7 @@ library(Lahman)
 library(dplyr)
 library(readr)
 library(stringr)
+library(tidyverse)
 
 url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
 html <- read_html(url)
@@ -52,11 +53,14 @@ cleaned <- data |>
     needed = round(0.75 * ballots),
     votes = Votes,
     inducted = ifelse(`%vote` >= 75, "Y", "N"),
-    category = "Player"
+    category = "Player",
+    needed_note = NA
   ) |> 
-  select(playerID, yearID, votedBy, ballots, needed, votes, inducted, category, Name)
+  select(playerID, yearID, votedBy, ballots, needed, votes, inducted, category, needed_note)
 
 head(cleaned, 10)
+
+readr::write_csv(cleaned, file = "HallOfFame_2025_cleaned.csv")
 
 ```
 
