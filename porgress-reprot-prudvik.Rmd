@@ -22,3 +22,18 @@ tables
 head(tables[[1]], 3)
 ```
 
+look at the people data set from lahmna
+
+```{r}
+library(Lahman)
+
+view(People)
+
+head(HallOfFame)
+view(HallOfFame)
+```
+
+```{r}
+tables
+```
+
