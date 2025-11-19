@@ -4,3 +4,40 @@ author: "Harrison Voss"
 output: html_document
 ---
 
+```{r}
+library(Lahman)
+head(HallOfFame, 3)
+```
+
+
+
+## Get the data and do some cleaning
+```{r}
+library(rvest)
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
+html <- read_html(url)
+tables <- html_table(html)
+
+
+data <- tables[[1]]
+actual_col_names <- data[1, ]
+colnames(data) <- actual_col_names
+data <- data[-1, ]
+head(data, 3)
+
+data$Votes <- as.numeric(data$Votes)
+
+str(data)
+
+data <- data[, -c(1)]
+
+str(data)
+
+show(data$Name)
+
+data$Name <- gsub("X-", "", data$Name)
+
+show(data$Name)
+
+readr::write_csv(data, file="hvoss_data.csv")
+```
