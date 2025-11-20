@@ -412,6 +412,90 @@ tables</code></pre>
 ## #   `Batting Stats` &lt;chr&gt;, `Batting Stats` &lt;chr&gt;, `Pitching Stats` &lt;chr&gt;,
 ## #   `Pitching Stats` &lt;chr&gt;, `Pitching Stats` &lt;chr&gt;, `Pitching Stats` &lt;chr&gt;,
 ## #   `Pitching Stats` &lt;chr&gt;, `Pitching Stats` &lt;chr&gt;, `Pitching Stats` &lt;chr&gt;, …</code></pre>
+<p>look at the people data set from lahmna</p>
+<pre class="r"><code>library(Lahman)
+library(tidyverse)</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+## ✔ forcats   1.0.1     ✔ stringr   1.5.1
+## ✔ ggplot2   3.5.2     ✔ tibble    3.3.0
+## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+## ✔ purrr     1.1.0     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter()         masks stats::filter()
+## ✖ readr::guess_encoding() masks rvest::guess_encoding()
+## ✖ dplyr::lag()            masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>head(HallOfFame)</code></pre>
+<pre><code>##    playerID yearID votedBy ballots needed votes inducted category needed_note
+## 1 aaronha01   1982   BBWAA     415    312   406        Y   Player        &lt;NA&gt;
+## 2 abbotji01   2005   BBWAA     516    387    13        N   Player        &lt;NA&gt;
+## 3 abreubo01   2020   BBWAA     397    298    22        N   Player        &lt;NA&gt;
+## 4 abreubo01   2021   BBWAA     401    301    35        N   Player        &lt;NA&gt;
+## 5 abreubo01   2022   BBWAA     394    296    34        N   Player        &lt;NA&gt;
+## 6 abreubo01   2023   BBWAA     389    292    60        N   Player        &lt;NA&gt;</code></pre>
+<pre class="r"><code>view(HallOfFame)
+
+view(People)</code></pre>
+<p>extracting column names</p>
+<pre class="r"><code>tables &lt;- tables[[1]]
+
+colnames(tables) &lt;- tables[1, ] |&gt; unlist() |&gt; as.character()
+raw_table &lt;- tables[-1, ]</code></pre>
+<p>preparing Hall of Fame voting table</p>
+<pre class="r"><code>hof_raw &lt;- raw_table %&gt;%
+  select(Rk, Name, YoB, Votes, `%vote`, HOFm, HOFs, Yrs, WAR, WAR7, JAWS) %&gt;%
+  mutate(
+    `%vote` = parse_number(`%vote`),
+    across(
+      .cols = c(Rk, YoB, Votes, HOFm, HOFs, Yrs, WAR, WAR7, JAWS),
+      .fns  = ~ suppressWarnings(parse_number(.x))
+    ),
+    Name = str_trim(Name)
+  )</code></pre>
+<p>preparing Lahman People table for joining</p>
+<pre class="r"><code>people_tbl &lt;- Lahman::People %&gt;%
+  mutate(fullName = paste(nameFirst, nameLast))</code></pre>
+<p>Merging Hall of Fame data with player IDs</p>
+<pre class="r"><code>hof_joined &lt;- hof_raw %&gt;%
+  left_join(
+    people_tbl %&gt;% select(playerID, fullName),
+    by = c(&quot;Name&quot; = &quot;fullName&quot;)
+  )</code></pre>
+<p>Final cleaned dataset for export</p>
+<pre class="r"><code>ballot_max &lt;- max(hof_joined$Votes, na.rm = TRUE)
+
+hof_cleaned &lt;- hof_joined %&gt;%
+  mutate(
+    ballots  = ballot_max,
+    needed   = round(ballots * 0.75, 2),
+    votes    = Votes,
+    inducted = if_else(`%vote` &gt;= 75, &quot;Y&quot;, &quot;N&quot;)
+  ) %&gt;%
+  mutate(
+    yearID      = 2025,
+    votedBy     = &quot;BBWAA&quot;,
+    category    = &quot;Player&quot;,
+    needed_note = NA
+  ) %&gt;%
+  select(
+    playerID, yearID, votedBy, ballots,
+    needed, votes, inducted, category, needed_note
+  )</code></pre>
+<pre class="r"><code>head(hof_cleaned, 10)</code></pre>
+<pre><code>## # A tibble: 10 × 9
+##    playerID  yearID votedBy ballots needed votes inducted category needed_note
+##    &lt;chr&gt;      &lt;dbl&gt; &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;    &lt;lgl&gt;      
+##  1 suzukic01   2025 BBWAA       393   295.   393 Y        Player   NA         
+##  2 sabatcc01   2025 BBWAA       393   295.   342 Y        Player   NA         
+##  3 wagnebi02   2025 BBWAA       393   295.   325 Y        Player   NA         
+##  4 &lt;NA&gt;        2025 BBWAA       393   295.   277 N        Player   NA         
+##  5 jonesan01   2025 BBWAA       393   295.   261 N        Player   NA         
+##  6 utleych01   2025 BBWAA       393   295.   157 N        Player   NA         
+##  7 rodrial01   2025 BBWAA       393   295.   146 N        Player   NA         
+##  8 ramirma02   2025 BBWAA       393   295.   135 N        Player   NA         
+##  9 pettian01   2025 BBWAA       393   295.   110 N        Player   NA         
+## 10 &lt;NA&gt;        2025 BBWAA       393   295.    81 N        Player   NA</code></pre>
 
 
 

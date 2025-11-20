@@ -26,14 +26,80 @@ look at the people data set from lahmna
 
 ```{r}
 library(Lahman)
-
-view(People)
+library(tidyverse)
 
 head(HallOfFame)
 view(HallOfFame)
+
+view(People)
+```
+
+extracting column names
+```{r}
+tables <- tables[[1]]
+
+colnames(tables) <- tables[1, ] |> unlist() |> as.character()
+raw_table <- tables[-1, ]
+```
+
+preparing Hall of Fame voting table 
+
+```{r}
+hof_raw <- raw_table %>%
+  select(Rk, Name, YoB, Votes, `%vote`, HOFm, HOFs, Yrs, WAR, WAR7, JAWS) %>%
+  mutate(
+    `%vote` = parse_number(`%vote`),
+    across(
+      .cols = c(Rk, YoB, Votes, HOFm, HOFs, Yrs, WAR, WAR7, JAWS),
+      .fns  = ~ suppressWarnings(parse_number(.x))
+    ),
+    Name = str_trim(Name)
+  )
+```
+
+preparing Lahman People table for joining 
+
+```{r}
+people_tbl <- Lahman::People %>%
+  mutate(fullName = paste(nameFirst, nameLast))
+```
+
+Merging Hall of Fame data with player IDs
+```{r}
+hof_joined <- hof_raw %>%
+  left_join(
+    people_tbl %>% select(playerID, fullName),
+    by = c("Name" = "fullName")
+  )
+```
+
+Final cleaned dataset for export
+```{r}
+
+ballot_max <- max(hof_joined$Votes, na.rm = TRUE)
+
+hof_cleaned <- hof_joined %>%
+  mutate(
+    ballots  = ballot_max,
+    needed   = round(ballots * 0.75, 2),
+    votes    = Votes,
+    inducted = if_else(`%vote` >= 75, "Y", "N")
+  ) %>%
+  mutate(
+    yearID      = 2025,
+    votedBy     = "BBWAA",
+    category    = "Player",
+    needed_note = NA
+  ) %>%
+  select(
+    playerID, yearID, votedBy, ballots,
+    needed, votes, inducted, category, needed_note
+  )
+
+
 ```
 
 ```{r}
-tables
+head(hof_cleaned, 10)
 ```
 
