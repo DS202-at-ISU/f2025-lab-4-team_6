@@ -14,30 +14,88 @@ head(HallOfFame, 3)
 ## Get the data and do some cleaning
 ```{r}
 library(rvest)
+library(dplyr)
+library(stringr)
+library(readr)
+
 url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
 html <- read_html(url)
 tables <- html_table(html)
 
+# ---------------------------
+# Load & fix initial structure
+# ---------------------------
 
 data <- tables[[1]]
+
+# First row contains column names
 actual_col_names <- data[1, ]
 colnames(data) <- actual_col_names
 data <- data[-1, ]
-head(data, 3)
 
-data$Votes <- as.numeric(data$Votes)
+# Remove the ranking column (first column)
+data <- data[, -1]
 
-str(data)
+# Fix duplicate column names (G, H, HR, BB)
+names(data) <- make.names(names(data), unique = TRUE)
 
-data <- data[, -c(1)]
+# ---------------------------
+# Clean Name column
+# ---------------------------
+data$Name <- gsub("^X-", "", data$Name)
 
-str(data)
+# ---------------------------
+# Convert %vote
+# ---------------------------
+# After make.names(), "%vote" becomes "X.vote"
+data$pct_vote <- as.numeric(gsub("%", "", data$X.vote))
 
-show(data$Name)
+# ---------------------------
+# Identify numeric columns
+# ---------------------------
 
-data$Name <- gsub("X-", "", data$Name)
+# Find the real Pos Summary column (make.names changed it)
+pos_col <- names(data)[grepl("Pos", names(data), ignore.case = TRUE)]
 
-show(data$Name)
+# Columns that must stay character
+exclude_cols <- c("Name", "YoB", "X.vote", pos_col, "pct_vote")
 
-readr::write_csv(data, file="hvoss_data.csv")
+# Everything else should be treated as numeric
+num_cols <- setdiff(names(data), exclude_cols)
+
+# Convert via parse_number
+data[num_cols] <- lapply(data[num_cols], parse_number)
+
+# ---------------------------
+# Create Lahman-style playerID
+# ---------------------------
+data <- data %>%
+  mutate(
+    playerID = Name |>
+      str_to_lower() |>
+      str_replace_all("[^a-z]", "")   # keep letters only
+  )
+
+# ---------------------------
+# Build HallOfFame-style table
+# ---------------------------
+
+# BBWAA ballots = highest number of votes anyone received
+ballots_cast <- max(data$Votes, na.rm = TRUE)
+
+data_hof <- data %>%
+  transmute(
+    playerID,
+    yearID      = 2025,
+    votedBy     = "BBWAA",
+    ballots     = ballots_cast,
+    needed      = 75,
+    votes       = Votes,
+    inducted    = if_else(pct_vote >= 75, "Y", "N"),
+    category    = "Player",
+    needed_note = NA_character_
+  )
+
+data_hof
+write.csv(data_hof, "hvoss_hof_2025.csv", row.names = FALSE)
 ```
